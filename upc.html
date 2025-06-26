@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>UPC Match Counter</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: sans-serif;
+      padding: 20px;
+      font-size: 11pt;
+    }
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 15px;
+    }
+    input, button {
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 4px 6px;
+      margin: 5px 0;
+      font-size: 10pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 10pt;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 4px 6px;
+      text-align: left;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      height: 28px;
+      position: relative;
+      z-index: 0;
+    }
+    th {
+      background-color: #1a1a1a;
+    }
+    .note {
+      font-size: 9pt;
+      color: #aaaaaa;
+      margin-bottom: 10px;
+    }
+    .controls {
+      margin-bottom: 15px;
+    }
+
+    /* Base alternating backgrounds */
+    tbody tr:nth-child(even) {
+      background-color: #242424; /* lighter base */
+    }
+    tbody tr:nth-child(odd) {
+      background-color: #1c1c1c; /* darker base */
+    }
+
+    /* Status overlays with some transparency to blend with base bg */
+    tr.count-zero {
+      background-color: rgba(44, 44, 44, 0.85) !important;
+    }
+    tr.under-quota {
+      background-color: rgba(181, 137, 0, 0.85) !important;
+    }
+    tr.met-quota {
+      background-color: rgba(46, 125, 50, 0.85) !important;
+    }
+    tr.over-quota {
+      background-color: rgba(217, 95, 2, 0.85) !important;
+    }
+
+    td input.count-field {
+      width: 100%;
+      box-sizing: border-box;
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 1px solid #555;
+      text-align: center;
+      font-size: 10pt;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>UPC Match Counter</h1>
+
+  <div class="controls">
+    <label>Load Reference List File:</label><br>
+    <input type="file" id="fileInput" accept=".txt" onchange="loadReferenceFile()" /><br />
+    <div class="note">Expected format (one per line):<br />
+      <code>&lt;SKU&gt;,&lt;UPC&gt;,&lt;DESCRIPTION&gt;,&lt;QUOTA&gt;</code><br />
+      Example: <code>0010001,12345678901,Broom heads and handles,10</code>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label>Scan UPC:</label><br />
+    <input
+      type="text"
+      id="upcInput"
+      onkeydown="if(event.key === 'Enter') scanUPC()"
+      placeholder="Scan or type UPC"
+      autofocus
+    />
+    <button onclick="scanUPC()">Scan</button>
+  </div>
+
+  <table id="upcTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>UPC</th>
+        <th>Description</th>
+        <th>Quota</th>
+        <th>Scanned</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const upcData = {};
+
+    function loadReferenceFile() {
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const lines = event.target.result.trim().split("\n");
+        for (const line of lines) {
+          const [sku, upc, desc, quotaStr] = line.split(",").map((s) => s.trim());
+          const quota = parseInt(quotaStr, 10);
+          if (sku && upc && desc && !isNaN(quota)) {
+            upcData[upc] = { sku, desc, quota, count: 0 };
+          }
+        }
+        renderTable();
+      };
+      reader.readAsText(file);
+    }
+
+    function scanUPC() {
+      const input = document.getElementById("upcInput");
+      const scannedUPC = input.value.trim();
+      input.value = "";
+      if (scannedUPC in upcData) {
+        upcData[scannedUPC].count++;
+        renderTable();
+      }
+    }
+
+    function updateCount(upc, newVal) {
+      const n = parseInt(newVal, 10);
+      if (!isNaN(n) && n >= 0) {
+        upcData[upc].count = n;
+        renderTable();
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("upcTable").querySelector("tbody");
+      tbody.innerHTML = "";
+      for (const [upc, { sku, desc, quota, count }] of Object.entries(upcData)) {
+        const tr = document.createElement("tr");
+
+        if (count === 0) tr.className = "count-zero";
+        else if (count < quota) tr.className = "under-quota";
+        else if (count === quota) tr.className = "met-quota";
+        else tr.className = "over-quota";
+
+        tr.innerHTML = `
+          <td>${sku}</td>
+          <td>${upc}</td>
+          <td>${desc}</td>
+          <td>${quota}</td>
+          <td><input class="count-field" type="number" value="${count}" onchange="updateCount('${upc}', this.value)" /></td>
+          <td>${statusText(count, quota)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function statusText(count, quota) {
+      if (count === 0) return "—";
+      if (count < quota) return `Partial (${count}/${quota})`;
+      if (count === quota) return "✓ Met";
+      return `Over (${count}/${quota})`;
+    }
+  </script>
+</body>
+</html>

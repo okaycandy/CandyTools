@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background-color: #1e1e2f;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      padding: 1rem;
+    }
+    .tile {
+      background: #2a2f45;
+      color: #c0d6df;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tile:hover, .tile:focus {
+      transform: scale(1.03);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      outline: none;
+    }
+    @media (min-width: 700px) {
+      .container {
+        grid-template-columns: 1fr;
+        width: 33.33vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tile" tabindex="0" onclick="window.open('table.html', '_blank')">Table View</div>
+    <div class="tile" tabindex="0" onclick="window.open('upc.html', '_blank')">UPC Scanner</div>
+  </div>
+</body>
+</html>

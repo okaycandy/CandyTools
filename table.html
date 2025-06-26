@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reference Table App</title>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    button, table {
+      font-size: 14px;
+    }
+    button {
+      padding: 5px 10px;
+      background: #444;
+      color: white;
+      border: 1px solid #666;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    tbody tr {
+      height: 32px;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: #2a2a2a;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #3a3a3a;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 6px;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      max-width: 1px;
+    }
+    td:focus {
+      outline: 2px solid #888;
+      background-color: #444;
+    }
+  </style>
+</head>
+<body>
+  <h2>Reference Table</h2>
+  <button onclick="exportTable()">Save As...</button>
+
+  <table id="refTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Count</th>
+        <th>UPC</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <script>
+    function insertRowWithValues(values) {
+      const tableBody = document.getElementById('refTable').tBodies[0];
+      const row = tableBody.insertRow();
+
+      values.forEach((text, index) => {
+        const cell = row.insertCell();
+        cell.contentEditable = true;
+        cell.textContent = text;
+
+        cell.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            cell.blur();
+          } else if (event.key === 'Tab') {
+            if (index === 3 && !event.shiftKey) {
+              event.preventDefault();
+              addEmptyRowAndFocus();
+            }
+          } else if (event.key === 'Backspace' && index === 0) {
+            if (cell.textContent.trim() === '') {
+              const currentRow = cell.parentElement;
+              const tbody = currentRow.parentElement;
+              const rowIndex = Array.prototype.indexOf.call(tbody.rows, currentRow);
+
+              if (rowIndex > 0 && isRowEmpty(currentRow)) {
+                event.preventDefault();
+                tbody.removeChild(currentRow);
+                const prevRow = tbody.rows[rowIndex - 1];
+                if (prevRow) {
+                  const lastCell = prevRow.cells[3];
+                  lastCell.focus();
+                  placeCursorAtEnd(lastCell);
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+
+    function addEmptyRowAndFocus() {
+      insertRowWithValues(['', '', '', '']);
+      const tbody = document.getElementById('refTable').tBodies[0];
+      const lastRow = tbody.rows[tbody.rows.length - 1];
+      lastRow.cells[0].focus();
+    }
+
+    function isRowEmpty(row) {
+      for (let i = 0; i < row.cells.length; i++) {
+        if (row.cells[i].textContent.trim() !== '') return false;
+      }
+      return true;
+    }
+
+    function placeCursorAtEnd(element) {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(element);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    function exportTable() {
+      const rows = document.getElementById('refTable').tBodies[0].rows;
+      let output = '';
+
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].cells;
+        const line = [
+          cells[0].textContent.trim(),  // SKU
+          cells[2].textContent.trim(),  // UPC
+          cells[3].textContent.trim(),  // Description
+          cells[1].textContent.trim()   // Count = Quota
+        ].join(',');
+        output += line + '\n';
+      }
+
+      const now = new Date();
+      const filename = `Reference - ${String(now.getDate()).padStart(2,'0')} ${String(now.getMonth()+1).padStart(2,'0')} ${String(now.getFullYear()).slice(-2)}.txt`;
+
+      const blob = new Blob([output], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+
+    // Start with one empty row
+    window.onload = () => insertRowWithValues(['', '', '', '']);
+  </script>
+</body>
+</html>
